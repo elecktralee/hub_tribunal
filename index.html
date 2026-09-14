@@ -2234,7 +2234,6 @@
         if (challenge) {
           grantConquistas(me, [challenge.conquista]);
           fireEvent("all", "🎉 " + ((guildById(me.guildId) || {}).nome || "") + " cumpriu o desafio \"" + challenge.nome + "\" e ganhou uma nova chance com bônus!", null, true);
-          Toast.push("🎲", "Rolagem disponível com bônus!");
         }
       });
     });
@@ -2829,7 +2828,7 @@
         evs.forEach(function (ev) {
           if (seenEventIds[ev.id]) return;
           seenEventIds[ev.id] = true;
-          if (!firstEventSnap) { pushSalaPopup("📣", ev.texto); Sound.playEvent(); }
+          if (!firstEventSnap) { pushSalaPopup("📣", ev.texto); Toast.push("📣", ev.texto); Sound.playEvent(); }
         });
         firstEventSnap = false;
         state.guildEvents = evs;
