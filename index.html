@@ -220,6 +220,12 @@
   @keyframes toast-in { from { transform: translateX(-30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   @keyframes toast-out { from { opacity: 1; } to { opacity: 0; transform: translateX(-20px); } }
 
+  .toast-stack { position: fixed; right: 14px; bottom: 14px; z-index: 999; display: flex; flex-direction: column; gap: 8px; max-width: min(320px, calc(100vw - 28px)); pointer-events: none; }
+  .toast-item { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--brass); border-radius: 8px; padding: 9px 14px; font-size: 0.82rem; box-shadow: 0 6px 18px rgba(0,0,0,0.35); animation: toast-in 0.3s ease; }
+  .toast-item .toast-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .toast-item.toast-good { border-color: var(--good); }
+  .toast-item.toast-bad { border-color: var(--seal); }
+
   .guild-pick { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
   .guild-pick button { border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 8px 16px; font-size: 0.86rem; }
   .guild-pick button.selected { border-color: var(--focus); background: var(--focus-soft); color: var(--focus); font-weight: 600; }
@@ -376,6 +382,7 @@
 </div>
 
 <main id="app"></main>
+<div id="toast-stack" class="toast-stack" aria-live="polite"></div>
 
 <script>
 (function () {
@@ -894,7 +901,10 @@
     Sound.playAchievement();
     toAdd.forEach(function (id) {
       var c = conquistaById(id);
-      if (c) pushSalaPopup(c.icon, "Conquista desbloqueada: " + c.nome);
+      if (c) {
+        pushSalaPopup(c.icon, "Conquista desbloqueada: " + c.nome);
+        Toast.push(c.icon, "Conquista desbloqueada: " + c.nome);
+      }
     });
   }
 
@@ -982,7 +992,7 @@
     var statics = scen && scen.personagens ? scen.personagens.filter(function (p) { return !p.pericia; }) : [];
     if (!list.length && !statics.length) return "";
     var ato = state.campaign.currentAto || 0;
-    var investigationOpen = ato === 1 || ato === 2;
+    var contactsOpen = ato === 2;
     var html = '<h3 class="section-label">Central de Contatos</h3>' +
       '<p class="field-help" style="margin-bottom:12px;">Todas as guildas podem ligar para todos os NPCs do caso — mas cada guilda tem só <b>uma tentativa</b> por contato, só depois de rolar o dado. A informação que o NPC revela depende de quem tirou o d20 mais alto entre as guildas que tiveram sucesso: quanto maior o resultado, mais reveladora é a pista (empate é resolvido por quem ligou primeiro). O equipamento certo dá vantagem na ligação (rola dois dados, fica com o maior).</p>' +
       '<div class="contact-grid">';
@@ -1003,19 +1013,21 @@
         html += '<div class="cflavor">Perícia sugerida: <b>' + esc(per.nome) + '</b>' + (per.atributo ? " (" + esc(per.atributo) + ")" : "") + ' · CD ' + p.dc + (hasBonus ? ' · <span class="vantagem-tag">vantagem com seu equipamento</span>' : '') + '</div>';
         var pendingChallenge = c && c.desafio && !c.desafio.cumprido ? icebreakerById(c.desafio.tipo) : null;
         var readyForRetry = c && c.desafio && c.desafio.cumprido && !c.desafio.usado;
-        if (attempted && c.status === "falha" && pendingChallenge) {
+        if (attempted && c.status === "falha" && !contactsOpen) {
+          html += '<p class="cfalha">' + esc(p.falha) + '</p><p class="field-help">A Central de Contatos só permite interagir durante o Ato II.</p>';
+        } else if (attempted && c.status === "falha" && pendingChallenge) {
           html += '<p class="cfalha">' + esc(p.falha) + '</p>';
           html += '<div class="icebreaker-card"><div class="ib-top"><span class="ib-icon">' + pendingChallenge.icon + '</span>Quebra-gelo: ' + esc(pendingChallenge.nome) + '</div>' +
             '<p class="ib-instrucao">' + esc(pendingChallenge.instrucao) + '</p>' +
             '<p class="field-help" style="margin-bottom:8px;">Cumpram isso de verdade, ao vivo — quando terminarem, confirmem abaixo pra ganhar uma nova ligação com bônus (rola dois dados, fica com o maior).</p>' +
             '<button class="btn" data-cumprir="' + key + '" ' + (state.dbReady ? "" : "disabled") + '>Cumprimos o desafio!</button></div>';
-        } else if (attempted && c.status === "falha" && readyForRetry && investigationOpen) {
+        } else if (attempted && c.status === "falha" && readyForRetry) {
           html += '<p class="cfalha">' + esc(p.falha) + '</p><p class="field-help" style="color:var(--brass);">Desafio cumprido — vocês ganharam uma nova ligação com bônus.</p>' +
             '<button class="btn secondary" data-contact="' + key + '" ' + (state.dbReady ? "" : "disabled") + '>Ligar de novo para ' + esc(p.nome) + ' (com bônus)</button>';
         } else if (attempted && c.status === "falha") {
           html += '<p class="cfalha">' + esc(p.falha) + '</p><p class="field-help">A guilda já tentou esse contato — não há uma segunda ligação.</p>';
-        } else if (!investigationOpen) {
-          html += '<p class="field-help">Prazo de investigação encerrado — a Central de Contatos só funciona nos Atos I e II.</p>';
+        } else if (!contactsOpen) {
+          html += '<p class="field-help">A Central de Contatos só abre para ligações no Ato II.</p>';
         } else {
           html += '<button class="btn secondary" data-contact="' + key + '" ' + (state.dbReady ? "" : "disabled") + '>Ligar para ' + esc(p.nome) + '</button>';
         }
@@ -1644,7 +1656,7 @@
     html += offlineNote();
     html += '<h2 class="screen-title">Mapa do Caso</h2>';
     html += '<div class="scene-banner" style="background-image:url(' + MAPA_BG + ')"><span class="scene-caption">Sala de evidências do Comitê</span></div>';
-    html += '<p class="screen-lede">O "tabuleiro" desta partida não é um território — é um caso a ser desmontado. Estas são as cinco frentes que toda guilda precisa cobrir antes do julgamento.</p>';
+    html += '<p class="screen-lede">Estas são as cinco frentes que toda guilda precisa cobrir antes do julgamento.</p>';
 
     html += '<div class="mapa-view-toggle">' +
       '<button type="button" class="' + (state.mapaView === "sala" ? "selected" : "") + '" data-mapaview="sala">Sala (todas as guildas)</button>' +
@@ -2123,6 +2135,7 @@
         state.fichaEditMode = false;
         if (wasNew) state.screen = "guilda";
         render();
+        Toast.push("🪪", "Personagem salvo!");
       });
     });
 
@@ -2136,10 +2149,13 @@
       if (!me || !state.db) return;
       var data = {};
       app.querySelectorAll("[data-field]").forEach(function (t) { data[t.dataset.field] = t.value; });
+      var editedField = state.lastEditedBoardField;
+      var editedFieldMeta = BOARD_FIELDS.filter(function (f) { return f.key === editedField; })[0];
       saveBoard.disabled = true;
       saveBoard.textContent = "Salvando…";
       state.db.doc("guilds/" + me.guildId).set(Object.assign({}, state.guilds[me.guildId] || {}, data, { updatedAt: Date.now() })).then(function () {
         state.boardSaveStatus = { ok: true, text: "Quadro salvo!" };
+        Toast.push("📋", (editedFieldMeta ? editedFieldMeta.label : "Quadro") + " registrado!", "good");
       }).catch(function () {
         state.boardSaveStatus = { ok: false, text: "Não deu pra salvar o quadro — confira sua conexão e tente de novo." };
       }).then(function () {
@@ -2150,7 +2166,6 @@
         }, 4000);
       });
       grantConquistas(me, evalBoardConquistas(data));
-      var editedField = state.lastEditedBoardField;
       if (editedField && data.hasOwnProperty(editedField)) {
         state.db.doc("characters/" + me.id).update({ ultimaAcao: { tipo: "board", campo: editedField, at: Date.now() }, updatedAt: Date.now() }).catch(function () {});
       }
@@ -2181,7 +2196,7 @@
         var me = myCharacter();
         if (!me || !state.db) return;
         var ato = state.campaign.currentAto || 0;
-        if (ato !== 1 && ato !== 2) return; // investigation window closed
+        if (ato !== 2) return; // Central de Contatos só interage no Ato II
         var key = b.dataset.contact;
         var scenId = key.slice(0, key.lastIndexOf("__"));
         var idx = parseInt(key.slice(key.lastIndexOf("__") + 2), 10);
@@ -2199,6 +2214,8 @@
       b.addEventListener("click", function () {
         var me = myCharacter();
         if (!me || !state.db) return;
+        var ato = state.campaign.currentAto || 0;
+        if (ato !== 2) return; // Central de Contatos só interage no Ato II
         var key = b.dataset.cumprir;
         var board = state.guilds[me.guildId] || {};
         var entry = (board.contatos || {})[key];
@@ -2217,6 +2234,7 @@
         if (challenge) {
           grantConquistas(me, [challenge.conquista]);
           fireEvent("all", "🎉 " + ((guildById(me.guildId) || {}).nome || "") + " cumpriu o desafio \"" + challenge.nome + "\" e ganhou uma nova chance com bônus!", null, true);
+          Toast.push("🎲", "Rolagem disponível com bônus!");
         }
       });
     });
@@ -2541,6 +2559,35 @@
     };
   })();
 
+  // ---------- toasts (relatório de ocorrência, canto da página) ----------
+  var Toast = (function () {
+    var stackEl = null;
+    function stack() {
+      if (!stackEl) stackEl = document.getElementById("toast-stack");
+      return stackEl;
+    }
+    function push(icon, texto, tom) {
+      var el = stack();
+      if (!el) return;
+      var item = document.createElement("div");
+      item.className = "toast-item" + (tom ? " toast-" + tom : "");
+      var iconSpan = document.createElement("span");
+      iconSpan.className = "toast-icon";
+      iconSpan.textContent = icon;
+      var textSpan = document.createElement("span");
+      textSpan.className = "toast-text";
+      textSpan.textContent = texto;
+      item.appendChild(iconSpan);
+      item.appendChild(textSpan);
+      el.appendChild(item);
+      setTimeout(function () {
+        item.style.animation = "toast-out 0.3s ease forwards";
+        setTimeout(function () { if (item.parentNode) item.parentNode.removeChild(item); }, 300);
+      }, 4200);
+    }
+    return { push: push };
+  })();
+
   (function bindSoundToggle() {
     var btn = document.getElementById("sound-toggle");
     if (!btn) return;
@@ -2751,7 +2798,22 @@
     var db = createSupabaseDb(supabaseClient);
     state.db = db; state.dbReady = true;
 
-    db.doc("campaign/state").onSnapshot(function (snap) { state.campaign = snap.exists ? snap.data() : { currentAto: 0 }; render(); });
+    var lastSeenAto = null;
+    var firstCampaignSnap = true;
+    db.doc("campaign/state").onSnapshot(function (snap) {
+      var data = snap.exists ? snap.data() : { currentAto: 0 };
+      var newAto = data.currentAto || 0;
+      if (!firstCampaignSnap && newAto !== lastSeenAto && (newAto === 2 || newAto === 3)) {
+        var me = myCharacter();
+        if (me && diceReminderState(me.guildId) === "pending") {
+          Toast.push("🎲", "Rolagem disponível — faça o Teste de Argumentação!");
+        }
+      }
+      lastSeenAto = newAto;
+      firstCampaignSnap = false;
+      state.campaign = data;
+      render();
+    });
 
     var lastGuildWatched = null;
     function watchGuildEvents() {
