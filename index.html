@@ -225,6 +225,8 @@
   .toast-item .toast-icon { font-size: 1.1rem; flex-shrink: 0; }
   .toast-item.toast-good { border-color: var(--good); }
   .toast-item.toast-bad { border-color: var(--seal); }
+  .toast-item.toast-shake { border-color: var(--seal); border-width: 2px; animation: toast-in 0.3s ease, toast-shake 0.5s ease-in-out 0.3s 2; }
+  @keyframes toast-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
 
   .guild-pick { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
   .guild-pick button { border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 8px 16px; font-size: 0.86rem; }
@@ -992,7 +994,7 @@
     var statics = scen && scen.personagens ? scen.personagens.filter(function (p) { return !p.pericia; }) : [];
     if (!list.length && !statics.length) return "";
     var ato = state.campaign.currentAto || 0;
-    var contactsOpen = ato === 2;
+    var contactsOpen = ato === 1 || ato === 2;
     var html = '<h3 class="section-label">Central de Contatos</h3>' +
       '<p class="field-help" style="margin-bottom:12px;">Todas as guildas podem ligar para todos os NPCs do caso — mas cada guilda tem só <b>uma tentativa</b> por contato, só depois de rolar o dado. A informação que o NPC revela depende de quem tirou o d20 mais alto entre as guildas que tiveram sucesso: quanto maior o resultado, mais reveladora é a pista (empate é resolvido por quem ligou primeiro). O equipamento certo dá vantagem na ligação (rola dois dados, fica com o maior).</p>' +
       '<div class="contact-grid">';
@@ -1014,7 +1016,7 @@
         var pendingChallenge = c && c.desafio && !c.desafio.cumprido ? icebreakerById(c.desafio.tipo) : null;
         var readyForRetry = c && c.desafio && c.desafio.cumprido && !c.desafio.usado;
         if (attempted && c.status === "falha" && !contactsOpen) {
-          html += '<p class="cfalha">' + esc(p.falha) + '</p><p class="field-help">A Central de Contatos só permite interagir durante o Ato II.</p>';
+          html += '<p class="cfalha">' + esc(p.falha) + '</p><p class="field-help">Prazo de investigação encerrado — a Central de Contatos só funciona nos Atos I e II.</p>';
         } else if (attempted && c.status === "falha" && pendingChallenge) {
           html += '<p class="cfalha">' + esc(p.falha) + '</p>';
           html += '<div class="icebreaker-card"><div class="ib-top"><span class="ib-icon">' + pendingChallenge.icon + '</span>Quebra-gelo: ' + esc(pendingChallenge.nome) + '</div>' +
@@ -1027,7 +1029,7 @@
         } else if (attempted && c.status === "falha") {
           html += '<p class="cfalha">' + esc(p.falha) + '</p><p class="field-help">A guilda já tentou esse contato — não há uma segunda ligação.</p>';
         } else if (!contactsOpen) {
-          html += '<p class="field-help">A Central de Contatos só abre para ligações no Ato II.</p>';
+          html += '<p class="field-help">Prazo de investigação encerrado — a Central de Contatos só funciona nos Atos I e II.</p>';
         } else {
           html += '<button class="btn secondary" data-contact="' + key + '" ' + (state.dbReady ? "" : "disabled") + '>Ligar para ' + esc(p.nome) + '</button>';
         }
@@ -1348,8 +1350,8 @@
       '</ol>' +
       '<div class="howto-atos"><b class="howto-title" style="display:block;margin-top:14px;">O que acontece em cada Ato</b>' +
       '<ul style="margin:8px 0 0;padding-left:20px;">' +
-      '<li style="margin-bottom:8px;"><b>Ato I — Abertura:</b> criem as fichas, leiam a história do caso no Mapa e comecem a preencher o campo <i>Problema</i> no quadro da guilda.</li>' +
-      '<li style="margin-bottom:8px;"><b>Ato II — Investigação:</b> os outros quatro campos do quadro abrem (Amostra, Considerações Éticas, Análise Estatística, Decisão Final). Usem a Central de Contatos, no Mapa do Caso, pra interrogar os personagens e destravar pistas com testes de perícia.</li>' +
+      '<li style="margin-bottom:8px;"><b>Ato I — Abertura:</b> criem as fichas, leiam a história do caso no Mapa, comecem a preencher o campo <i>Problema</i> no quadro da guilda e usem a Central de Contatos, no Mapa do Caso, pra interrogar os personagens e destravar pistas com testes de perícia.</li>' +
+      '<li style="margin-bottom:8px;"><b>Ato II — Investigação:</b> os outros quatro campos do quadro abrem (Amostra, Considerações Éticas, Análise Estatística, Decisão Final).</li>' +
       '<li style="margin-bottom:8px;"><b>Ato III — Julgamento:</b> o quadro trava (não dá mais pra editar). O Relator da guilda apresenta a Decisão Final pra banca; cada integrante confirma que sua parte foi entregue.</li>' +
       '<li><b>Ato IV — Debriefing:</b> o caso encerra. Tudo (quadro, pistas, testes, divergências entre guildas) fica visível como registro pra conversa final com o Mestre.</li>' +
       '</ul></div></div>';
@@ -2196,7 +2198,7 @@
         var me = myCharacter();
         if (!me || !state.db) return;
         var ato = state.campaign.currentAto || 0;
-        if (ato !== 2) return; // Central de Contatos só interage no Ato II
+        if (ato !== 1 && ato !== 2) return; // investigation window closed
         var key = b.dataset.contact;
         var scenId = key.slice(0, key.lastIndexOf("__"));
         var idx = parseInt(key.slice(key.lastIndexOf("__") + 2), 10);
@@ -2215,7 +2217,7 @@
         var me = myCharacter();
         if (!me || !state.db) return;
         var ato = state.campaign.currentAto || 0;
-        if (ato !== 2) return; // Central de Contatos só interage no Ato II
+        if (ato !== 1 && ato !== 2) return; // investigation window closed
         var key = b.dataset.cumprir;
         var board = state.guilds[me.guildId] || {};
         var entry = (board.contatos || {})[key];
@@ -2828,7 +2830,12 @@
         evs.forEach(function (ev) {
           if (seenEventIds[ev.id]) return;
           seenEventIds[ev.id] = true;
-          if (!firstEventSnap) { pushSalaPopup("📣", ev.texto); Toast.push("📣", ev.texto); Sound.playEvent(); }
+          if (!firstEventSnap) {
+            pushSalaPopup("📣", ev.texto);
+            var isChallengeCall = ev.texto.indexOf("precisa cumprir o desafio") !== -1;
+            Toast.push("📣", ev.texto, isChallengeCall ? "shake" : null);
+            Sound.playEvent();
+          }
         });
         firstEventSnap = false;
         state.guildEvents = evs;
