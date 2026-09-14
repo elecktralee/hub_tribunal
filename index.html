@@ -1343,19 +1343,14 @@
     html += '<p class="screen-lede">Espaço comum da turma. Aqui todo mundo vê o mesmo caso ativo, o mesmo relógio de sessão e qualquer aviso que o Mestre disparar para todos.</p>';
     html += briefingPanel();
 
-    html += '<div class="card howto"><b class="howto-title">Como funciona</b><ol>' +
-      '<li>Crie sua ficha em <b>Minha Ficha</b> — escolha guilda e papel.</li>' +
-      '<li>Dê uma olhada no <b>Mapa do Caso</b> pra entender o que a guilda vai decidir.</li>' +
-      '<li>Na <b>Sala da Guilda</b>, preencham juntos o quadro — em qualquer ordem, aos poucos.</li>' +
-      '<li>O Mestre avança os Atos e manda avisos pelo <b>Painel do Mestre</b>; fique de olho nos avisos aqui na Taverna.</li>' +
-      '</ol>' +
-      '<div class="howto-atos"><b class="howto-title" style="display:block;margin-top:14px;">O que acontece em cada Ato</b>' +
-      '<ul style="margin:8px 0 0;padding-left:20px;">' +
-      '<li style="margin-bottom:8px;"><b>Ato I — Abertura:</b> criem as fichas, leiam a história do caso no Mapa, comecem a preencher o campo <i>Problema</i> no quadro da guilda e usem a Central de Contatos, no Mapa do Caso, pra interrogar os personagens e destravar pistas com testes de perícia.</li>' +
+    html += '<div class="card howto"><b class="howto-title">Como funciona</b>' +
+      '<p class="field-help" style="margin-bottom:12px;">O jogo avança em 4 atos, cada um liberando novas tarefas no quadro da guilda. O Mestre controla o ritmo pelo <b>Painel do Mestre</b> — fique de olho nos avisos aqui na Taverna.</p>' +
+      '<ul style="margin:0;padding-left:20px;">' +
+      '<li style="margin-bottom:8px;"><b>Ato I — Abertura:</b> crie sua ficha em <b>Minha Ficha</b> (guilda e papel), leia a história do caso no <b>Mapa do Caso</b>, comecem a preencher o campo <i>Problema</i> no quadro da guilda (<b>Sala da Guilda</b>) e usem a Central de Contatos, no Mapa do Caso, pra interrogar os personagens e destravar pistas com testes de perícia.</li>' +
       '<li style="margin-bottom:8px;"><b>Ato II — Investigação:</b> os outros quatro campos do quadro abrem (Amostra, Considerações Éticas, Análise Estatística, Decisão Final).</li>' +
       '<li style="margin-bottom:8px;"><b>Ato III — Julgamento:</b> o quadro trava (não dá mais pra editar). O Relator da guilda apresenta a Decisão Final pra banca; cada integrante confirma que sua parte foi entregue.</li>' +
       '<li><b>Ato IV — Debriefing:</b> o caso encerra. Tudo (quadro, pistas, testes, divergências entre guildas) fica visível como registro pra conversa final com o Mestre.</li>' +
-      '</ul></div></div>';
+      '</ul></div>';
 
     if (state.globalEvent) html += '<div class="banner"><span class="banner-icon">⚠️</span><div><b>Evento de Caos —</b> ' + esc(state.globalEvent.texto) + '</div></div>';
 
