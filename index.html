@@ -223,6 +223,7 @@
   .toast-stack { position: fixed; right: 14px; bottom: 14px; z-index: 999; display: flex; flex-direction: column; gap: 8px; max-width: min(320px, calc(100vw - 28px)); pointer-events: none; }
   .toast-item { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--brass); border-radius: 8px; padding: 9px 14px; font-size: 0.82rem; box-shadow: 0 6px 18px rgba(0,0,0,0.35); animation: toast-in 0.3s ease; }
   .toast-item .toast-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .toast-item .toast-icon-img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--line); }
   .toast-item.toast-good { border-color: var(--good); }
   .toast-item.toast-bad { border-color: var(--seal); }
   .toast-item.toast-shake { border-color: var(--seal); border-width: 2px; animation: toast-in 0.3s ease, toast-shake 0.5s ease-in-out 0.3s 2; }
@@ -2137,7 +2138,7 @@
         state.fichaEditMode = false;
         if (wasNew) state.screen = "guilda";
         render();
-        Toast.push("🪪", "Personagem salvo!");
+        Toast.push(AVATAR_TOKEN[aparenciaVariant] || AVATAR_TOKEN.m1, "Personagem salvo!");
       });
     });
 
@@ -2572,13 +2573,21 @@
       if (!el) return;
       var item = document.createElement("div");
       item.className = "toast-item" + (tom ? " toast-" + tom : "");
-      var iconSpan = document.createElement("span");
-      iconSpan.className = "toast-icon";
-      iconSpan.textContent = icon;
+      var iconEl;
+      if (icon && icon.indexOf && icon.indexOf("data:") === 0) {
+        iconEl = document.createElement("img");
+        iconEl.className = "toast-icon-img";
+        iconEl.src = icon;
+        iconEl.alt = "";
+      } else {
+        iconEl = document.createElement("span");
+        iconEl.className = "toast-icon";
+        iconEl.textContent = icon;
+      }
       var textSpan = document.createElement("span");
       textSpan.className = "toast-text";
       textSpan.textContent = texto;
-      item.appendChild(iconSpan);
+      item.appendChild(iconEl);
       item.appendChild(textSpan);
       el.appendChild(item);
       setTimeout(function () {
